@@ -608,12 +608,13 @@ class PipelineRunner:
         else:
             return None  # Job still running
 
-    def download_html_report(self, job_id: str, output_path: Optional[str] = None) -> str:
+    def download_html_report(self, job_id: str, output_path: Optional[str] = None, enhanced: bool = False) -> str:
         """Download the HTML report to a local file
         
         Args:
             job_id: Job identifier
-            output_path: Local file path to save the report (default: scan_report_{job_id}.html)
+            output_path: Local file path to save the report (default: scan_report_{job_id}.html or enhanced_report_{job_id}.html)
+            enhanced: If True, downloads the enhanced report; if False, downloads standard Garak report
             
         Returns:
             Path to the downloaded file
@@ -624,20 +625,24 @@ class PipelineRunner:
         if (job := self.scan_jobs.get(job_id)) is None:
             raise RuntimeError(f"Job {job_id} not found")
         
+        # Select which report to download
+        report_filename = "scan.enhanced.html" if enhanced else "scan.report.html"
+        
         if self._s3_prefix:
-            key = f"{self._s3_prefix}/{job_id}/scan.report.html"
+            key = f"{self._s3_prefix}/{job_id}/{report_filename}"
         else:
-            key = f"{job_id}/scan.report.html"
+            key = f"{job_id}/{report_filename}"
         
         # Default output path
         if output_path is None:
-            output_path = f"scan_report_{job_id}.html"
+            prefix = "enhanced_report" if enhanced else "scan_report"
+            output_path = f"{prefix}_{job_id}.html"
         
         try:
             if not self.s3_client:
                 self._create_s3_client()
             
-            logger.info(f"Downloading HTML report from s3://{self._s3_bucket}/{key}")
+            logger.info(f"Downloading {'enhanced' if enhanced else 'standard'} HTML report from s3://{self._s3_bucket}/{key}")
             
             response = self.s3_client.get_object(Bucket=self._s3_bucket, Key=key)
             html_content = response['Body'].read()

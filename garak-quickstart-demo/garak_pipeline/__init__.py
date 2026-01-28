@@ -33,6 +33,9 @@ def __getattr__(name: str):
     if name == "GarakError":
         from .errors import GarakError
         return GarakError
+    if name == "generate_enhanced_report":
+        from .report_generator import generate_enhanced_report
+        return generate_enhanced_report
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 
@@ -48,4 +51,5 @@ __all__ = [
     "PipelineRunner",
     "ScanJob",
     "GarakError",
+    "generate_enhanced_report",
 ]

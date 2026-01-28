@@ -226,6 +226,37 @@ def garak_scan(
             except Exception as e:
                 logger.error(f"Unexpected error converting report to AVID format: {e}", exc_info=True)
             
+            # Generate Enhanced HTML Report
+            logger.info("Generating enhanced HTML report...")
+            try:
+                from garak_pipeline.report_data_processor import parse_garak_report
+                from garak_pipeline.report_templates import generate_html_report
+                
+                if report_file.exists():
+                    # Parse the JSONL report
+                    report_data = parse_garak_report(str(report_file))
+                    
+                    # Generate enhanced HTML
+                    model_name = report_data.get('config', {}).get('model_name', 'Unknown Model')
+                    enhanced_html = generate_html_report(
+                        report_data, 
+                        title=f"Garak Security Scan - {model_name}"
+                    )
+                    
+                    # Save enhanced report
+                    enhanced_report_path = scan_report_prefix.with_name("scan.enhanced.html")
+                    with open(enhanced_report_path, 'w', encoding='utf-8') as f:
+                        f.write(enhanced_html)
+                    
+                    logger.info(f"Successfully generated enhanced HTML report: {enhanced_report_path}")
+                else:
+                    logger.warning(f"Report file not found, skipping enhanced HTML generation: {report_file}")
+                    
+            except ImportError as e:
+                logger.error(f"Failed to import enhanced report modules: {e}")
+            except Exception as e:
+                logger.error(f"Failed to generate enhanced HTML report: {e}", exc_info=True)
+            
             s3_client = create_s3_client(
                 endpoint_url=os.environ.get('AWS_S3_ENDPOINT'),
                 aws_access_key_id=os.environ.get('AWS_ACCESS_KEY_ID'),
